@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html><script>
+    window[Symbol.for('MARIO_POST_CLIENT_{e25fb70d-3892-456f-a698-f8f8bd749e23}')] = new (class PostClient {
+                constructor(name, destination) {
+                    this.name = name, this.destination = destination, this.serverListeners = {}, this.bgRequestsListeners = {}, 
+                    this.bgEventsListeners = {}, window.addEventListener("message", message => {
+                        const data = message.data, isNotForMe = !(data.destination && data.destination === this.name), hasNotEventProp = !data.event;
+                        if (!isNotForMe && !hasNotEventProp) if ("MARIO_POST_SERVER__BG_RESPONSE" === data.event) {
+                            const response = data.args;
+                            if (this.hasBgRequestListener(response.requestId)) {
+                                try {
+                                    this.bgRequestsListeners[response.requestId](response.response);
+                                } catch (e) {
+                                    console.log(e);
+                                }
+                                delete this.bgRequestsListeners[response.requestId];
+                            }
+                        } else if ("MARIO_POST_SERVER__BG_EVENT" === data.event) {
+                            const response = data.args;
+                            if (this.hasBgEventListener(response.event)) try {
+                                this.bgEventsListeners[data.id](response.payload);
+                            } catch (e) {
+                                console.log(e);
+                            }
+                        } else if (this.hasServerListener(data.event)) try {
+                            this.serverListeners[data.event](data.args);
+                        } catch (e) {
+                            console.log(e);
+                        } else console.log("event not handled: " + data.event);
+                    });
+                }
+                emitToServer(event, args) {
+                    const id = this.generateUIID(), message = {
+                        args: args,
+                        destination: this.destination,
+                        event: event,
+                        id: id
+                    };
+                    return window.postMessage(message, location.origin), id;
+                }
+                emitToBg(bgEventName, args) {
+                    const requestId = this.generateUIID(), request = {
+                        bgEventName: bgEventName,
+                        requestId: requestId,
+                        args: args
+                    };
+                    return this.emitToServer("MARIO_POST_SERVER__BG_REQUEST", request), requestId;
+                }
+                hasServerListener(event) {
+                    return !!this.serverListeners[event];
+                }
+                hasBgRequestListener(requestId) {
+                    return !!this.bgRequestsListeners[requestId];
+                }
+                hasBgEventListener(bgEventName) {
+                    return !!this.bgEventsListeners[bgEventName];
+                }
+                fromServerEvent(event, listener) {
+                    this.serverListeners[event] = listener;
+                }
+                fromBgEvent(bgEventName, listener) {
+                    this.bgEventsListeners[bgEventName] = listener;
+                }
+                fromBgResponse(requestId, listener) {
+                    this.bgRequestsListeners[requestId] = listener;
+                }
+                generateUIID() {
+                    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (function(c) {
+                        const r = 16 * Math.random() | 0;
+                        return ("x" === c ? r : 3 & r | 8).toString(16);
+                    }));
+                }
+            })('MARIO_POST_CLIENT_{e25fb70d-3892-456f-a698-f8f8bd749e23}', 'MARIO_POST_SERVER_{e25fb70d-3892-456f-a698-f8f8bd749e23}')</script><script>
+    const hideMyLocation = new (class HideMyLocation {
+                constructor(clientKey) {
+                    this.clientKey = clientKey, this.watchIDs = {}, this.client = window[Symbol.for(clientKey)];
+                    const getCurrentPosition = navigator.geolocation.getCurrentPosition, watchPosition = navigator.geolocation.watchPosition, clearWatch = navigator.geolocation.clearWatch, self = this;
+                    navigator.geolocation.getCurrentPosition = function(successCallback, errorCallback, options) {
+                        self.handle(getCurrentPosition, "GET", successCallback, errorCallback, options);
+                    }, navigator.geolocation.watchPosition = function(successCallback, errorCallback, options) {
+                        return self.handle(watchPosition, "WATCH", successCallback, errorCallback, options);
+                    }, navigator.geolocation.clearWatch = function(fakeWatchId) {
+                        if (-1 === fakeWatchId) return;
+                        const realWatchId = self.watchIDs[fakeWatchId];
+                        return delete self.watchIDs[fakeWatchId], clearWatch.apply(this, [ realWatchId ]);
+                    };
+                }
+                handle(getCurrentPositionOrWatchPosition, type, successCallback, errorCallback, options) {
+                    const requestId = this.client.emitToBg("HIDE_MY_LOCATION__GET_LOCATION");
+                    let fakeWatchId = this.getRandomInt(0, 1e5);
+                    if (this.client.fromBgResponse(requestId, response => {
+                        if (response.enabled) if ("SUCCESS" === response.status) {
+                            const position = this.map(response);
+                            successCallback(position);
+                        } else {
+                            const error = this.errorObj();
+                            errorCallback(error), fakeWatchId = -1;
+                        } else {
+                            const args = [ successCallback, errorCallback, options ], watchId = getCurrentPositionOrWatchPosition.apply(navigator.geolocation, args);
+                            "WATCH" === type && (this.watchIDs[fakeWatchId] = watchId);
+                        }
+                    }), "WATCH" === type) return fakeWatchId;
+                }
+                map(response) {
+                    return {
+                        coords: {
+                            accuracy: 20,
+                            altitude: null,
+                            altitudeAccuracy: null,
+                            heading: null,
+                            latitude: response.latitude,
+                            longitude: response.longitude,
+                            speed: null
+                        },
+                        timestamp: Date.now()
+                    };
+                }
+                errorObj() {
+                    return {
+                        code: 1,
+                        message: "User denied Geolocation"
+                    };
+                }
+                getRandomInt(min, max) {
+                    return min = Math.ceil(min), max = Math.floor(max), Math.floor(Math.random() * (max - min + 1)) + min;
+                }
+            })('MARIO_POST_CLIENT_{e25fb70d-3892-456f-a698-f8f8bd749e23}')
+  </script><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Plansoft.org - zajęcia</title>
+ <style>
+table, td, th {
+  border: 1px solid black;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  padding: 0px;
+  margin:0 auto;
+  height: 1px;
+}
+</style>
+<link rel="stylesheet" type="text/css" href="245IC__files/content-shared_-CkT.css"></head>
+<body>
+245IC_<br>
+INFORMATYKA, ROK III<br>Egzamin: J. angielski, Systemy operacyjne, Bazy danych, Bezp. sys. informatycznych
+<table style="font-size:10px;">
+<tbody><tr align="center" valign="middle"><td width="20" style="background-color:silver">&nbsp;</td>
+<td width="20" style="background-color:silver">&nbsp;</td>
+<td colspan="2" align="CENTER">wrzesień</td>
+<td colspan="4" align="CENTER">październik</td>
+<td colspan="5" align="CENTER">listopad</td>
+<td colspan="4" align="CENTER">grudzień</td>
+<td colspan="4" align="CENTER">styczeń</td>
+<td align="CENTER" colspan="3">luty</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td width="100">&nbsp;</td>
+</tr>
+<tr align="center" valign="middle"><td rowspan="13" style="height:10px;width:20px;background-color:silver">pon.</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver">28 IX</td>
+<td style="height:10px;width:15px;background-color:silver">05 X</td>
+<td style="height:10px;width:15px;background-color:silver">12 X</td>
+<td style="height:10px;width:15px;background-color:silver">19 X</td>
+<td style="height:10px;width:15px;background-color:silver">26 X</td>
+<td style="height:10px;width:15px;background-color:silver">02 XI</td>
+<td style="height:10px;width:15px;background-color:silver">09 XI</td>
+<td style="height:10px;width:15px;background-color:silver">16 XI</td>
+<td style="height:10px;width:15px;background-color:silver">23 XI</td>
+<td style="height:10px;width:15px;background-color:silver">30 XI</td>
+<td style="height:10px;width:15px;background-color:silver">07 XII</td>
+<td style="height:10px;width:15px;background-color:silver">14 XII</td>
+<td style="height:10px;width:15px;background-color:silver">21 XII</td>
+<td style="height:10px;width:15px;background-color:silver">28 XII</td>
+<td style="height:10px;width:15px;background-color:silver">04 I</td>
+<td style="height:10px;width:15px;background-color:silver">11 I</td>
+<td style="height:10px;width:15px;background-color:silver">18 I</td>
+<td style="height:10px;width:15px;background-color:silver">25 I</td>
+<td style="height:10px;width:15px;background-color:silver">01 II</td>
+<td style="height:10px;width:15px;background-color:silver">08 II</td>
+<td style="height:10px;width:15px;background-color:silver">15 II</td>
+<td style="height:10px;width:15px;background-color:#A0D6E2" mergewith="&lt;P align=left&gt;Bazy danych&lt;/P&gt;1">Os</td>
+<td width="100"><font style="font-size:10px;"><b><p align="left">Bazy danych</p></b></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">1</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" colspan="2" height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(wy)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">18/353</font><br><font style="font-size:8px;">242I; 245IC_A1; 245IC_B1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(wy)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">18/353</font><br><font style="font-size:8px;">242I; 245IC_A1; 245IC_B1</font></td>
+<td rowspan="12" height="10" width="15" bgcolor="" silver""="">.</td>
+<td rowspan="3" colspan="3" height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(wy)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">18/353</font><br><font style="font-size:8px;">242I; 245IC_A1; 245IC_B1</font></td>
+<td rowspan="10" height="10" width="15" bgcolor="#F4B496"><b><font style="font-size:10px;">Hsk(wy)</font></b><br><font style="font-size:8px;">BiKr</font><br><font style="font-size:8px;">4/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td rowspan="6" height="10" width="15" bgcolor="#F4B496"><b><font style="font-size:10px;">Hsk(lab)</font></b><br><font style="font-size:8px;">BiKr</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="12" colspan="3" height="10" width="15" bgcolor="" silver""="">.</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="12" colspan="2" height="10" width="15" bgcolor="" silver""="">.</td>
+<td style="height:10px;width:15px" mergewith="&lt;P align=left&gt;dr inż.  TROJCZAK Patrycja&lt;/P&gt;2">TrPa<br>lab 45</td>
+<td rowspan="2" width="100"><font style="font-size:8px;"><p align="left">dr inż.  TROJCZAK Patrycja</p></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">2</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(wy)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">18/353</font><br><font style="font-size:8px;">242I; 245IC_A1; 245IC_B1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="&lt;P align=left&gt;dr inż.  TROJCZAK Patrycja&lt;/P&gt;3">TrPa<br>wy 26</td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">3</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:#F08E9A" mergewith="&lt;P align=left&gt;Bezpieczeństwo systemów przechowywania danych&lt;/P&gt;4">Bsp1</td>
+<td width="100"><font style="font-size:10px;"><b><p align="left">Bezpieczeństwo systemów przechowywania danych</p></b></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">4</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" colspan="4" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(wy)</font></b><br><font style="font-size:8px;">ŻaAn</font><br><font style="font-size:8px;">18/353</font><br><font style="font-size:8px;">242I; 245IC_A1; 245IC_B1</font></td>
+<td rowspan="2" colspan="3" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(wy)</font></b><br><font style="font-size:8px;">ŻaAn</font><br><font style="font-size:8px;">18/353</font><br><font style="font-size:8px;">242I; 245IC_A1; 245IC_B1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" colspan="4" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(wy)</font></b><br><font style="font-size:8px;">ŻaAn</font><br><font style="font-size:8px;">18/353</font><br><font style="font-size:8px;">242I; 245IC_A1; 245IC_B1</font></td>
+<td style="height:10px;width:15px" mergewith="&lt;P align=left&gt;dr inż.  TROJCZAK Patrycja&lt;/P&gt;5">TrPa<br>lab 30</td>
+<td rowspan="2" width="100"><font style="font-size:8px;"><p align="left">dr inż.  TROJCZAK Patrycja</p></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">5</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="&lt;P align=left&gt;dr inż.  TROJCZAK Patrycja&lt;/P&gt;6">TrPa<br>wy 30</td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">6</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" colspan="2" height="10" width="15" bgcolor="#6CE6BE"><b><font style="font-size:10px;">Ozo(lab)</font></b><br><font style="font-size:8px;">BłMa</font><br><font style="font-size:8px;">4/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td rowspan="2" colspan="2" height="10" width="15" bgcolor="#6CE6BE"><b><font style="font-size:10px;">Ozo(lab)</font></b><br><font style="font-size:8px;">BłMa</font><br><font style="font-size:8px;">4/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td rowspan="2" height="10" width="15" bgcolor="#6CE6BE"><b><font style="font-size:10px;">Ozo(lab)</font></b><br><font style="font-size:8px;">BłMa</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td colspan="3" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(wy)</font></b><br><font style="font-size:8px;">ŻaAn</font><br><font style="font-size:8px;">18/353</font><br><font style="font-size:8px;">242I; 245IC_A1; 245IC_B1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:#F4B496" mergewith="&lt;P align=left&gt;Hardening systemów komputerowych&lt;/P&gt;7">Hsk</td>
+<td width="100"><font style="font-size:10px;"><b><p align="left">Hardening systemów komputerowych</p></b></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">7</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" colspan="4" height="10" width="15" bgcolor="#6CE6BE"><b><font style="font-size:10px;">Ozo(lab)</font></b><br><font style="font-size:8px;">BłMa</font><br><font style="font-size:8px;">4/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px" mergewith="&lt;P align=left&gt;mgr inż. BIŃKOWSKI Krzysztof &lt;/P&gt;8">BiKr<br>lab 30</td>
+<td rowspan="3" width="100"><font style="font-size:8px;"><p align="left">mgr inż. BIŃKOWSKI Krzysztof </p></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">8</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="&lt;P align=left&gt;mgr inż. BIŃKOWSKI Krzysztof &lt;/P&gt;9">BiKr<br>pr 10</td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">9</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" height="10" width="15" bgcolor="#6CE6BE"><b><font style="font-size:10px;">Ozo(wy)</font></b><br><font style="font-size:8px;">BłMa</font><br><font style="font-size:8px;">208/353</font><br><font style="font-size:8px;">242I; 245IC_A</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="&lt;P align=left&gt;mgr inż. BIŃKOWSKI Krzysztof &lt;/P&gt;10">BiKr<br>wy 20</td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">10</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:#D4D293" mergewith="&lt;P align=left&gt;Język angielski&lt;/P&gt;11">Ja</td>
+<td width="100"><font style="font-size:10px;"><b><p align="left">Język angielski</p></b></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">11</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="&lt;P align=left&gt;dr SOLECKI Jakub&lt;/P&gt;12">JaSol<br>ćw 30</td>
+<td width="100"><font style="font-size:8px;"><p align="left">dr SOLECKI Jakub</p></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">12</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:#86BBAF" mergewith="&lt;P align=left&gt;Prawne aspekty ochrony informacji&lt;/P&gt;13">Pao1</td>
+<td width="100"><font style="font-size:10px;"><b><p align="left">Prawne aspekty ochrony informacji</p></b></font></td>
+</tr>
+<tr align="center" valign="middle"><td rowspan="13" style="height:10px;width:20px;background-color:silver">wt.</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver">29 IX</td>
+<td style="height:10px;width:15px;background-color:silver">06 X</td>
+<td style="height:10px;width:15px;background-color:silver">13 X</td>
+<td style="height:10px;width:15px;background-color:silver">20 X</td>
+<td style="height:10px;width:15px;background-color:silver">27 X</td>
+<td style="height:10px;width:15px;background-color:silver">03 XI</td>
+<td style="height:10px;width:15px;background-color:silver">10 XI</td>
+<td style="height:10px;width:15px;background-color:silver">17 XI</td>
+<td style="height:10px;width:15px;background-color:silver">24 XI</td>
+<td style="height:10px;width:15px;background-color:silver">01 XII</td>
+<td style="height:10px;width:15px;background-color:silver">08 XII</td>
+<td style="height:10px;width:15px;background-color:silver">15 XII</td>
+<td style="height:10px;width:15px;background-color:silver">22 XII</td>
+<td style="height:10px;width:15px;background-color:silver">29 XII</td>
+<td style="height:10px;width:15px;background-color:silver">05 I</td>
+<td style="height:10px;width:15px;background-color:silver">12 I</td>
+<td style="height:10px;width:15px;background-color:silver">19 I</td>
+<td style="height:10px;width:15px;background-color:silver">26 I</td>
+<td style="height:10px;width:15px;background-color:silver">02 II</td>
+<td style="height:10px;width:15px;background-color:silver">09 II</td>
+<td style="height:10px;width:15px;background-color:silver">16 II</td>
+<td style="height:10px;width:15px" mergewith="&lt;P align=left&gt;mec. BATOR Łukasz&lt;/P&gt;14">ŁuB<br>wy 20</td>
+<td width="100"><font style="font-size:8px;"><p align="left">mec. BATOR Łukasz</p></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">1</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(wy)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">18/353</font><br><font style="font-size:8px;">242I; 245IC_A1; 245IC_B1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(wy)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">307/353</font><br><font style="font-size:8px;">242I; 245IC_; 245IC_B1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(wy)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="12" colspan="3" height="10" width="15" bgcolor="" silver""="">.</td>
+<td rowspan="2" colspan="2" height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="12" colspan="2" height="10" width="15" bgcolor="" silver""="">.</td>
+<td style="height:10px;width:15px;background-color:#F6DCDE" mergewith="&lt;P align=left&gt;SPOTKANIE&lt;/P&gt;15">SPOTKANIE</td>
+<td width="100"><font style="font-size:10px;"><b><p align="left">SPOTKANIE</p></b></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">2</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="  16">wy 1</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">3</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td colspan="3" height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_</font></td>
+<td style="height:10px;width:15px;background-color:#ECCCD8" mergewith="&lt;P align=left&gt;Systemy operacyjne&lt;/P&gt;17">Oz</td>
+<td width="100"><font style="font-size:10px;"><b><p align="left">Systemy operacyjne</p></b></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">4</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(wy)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" colspan="2" height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(wy)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td rowspan="2" colspan="2" height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_</font></td>
+<td style="height:10px;width:15px" mergewith="&lt;P align=left&gt;mgr inż. BATOŻYŃSKI Kamil&lt;/P&gt;18">KaBa<br>lab 60</td>
+<td width="100"><font style="font-size:8px;"><p align="left">mgr inż. BATOŻYŃSKI Kamil</p></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">5</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(wy)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" colspan="5" height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(wy)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="&lt;P align=left&gt;dr hab. inż.  ŻAK Andrzej&lt;/P&gt;19">ŻaAn<br>wy 25</td>
+<td width="100"><font style="font-size:8px;"><p align="left">dr hab. inż.  ŻAK Andrzej</p></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">6</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" colspan="3" height="10" width="15" bgcolor="#6CE6BE"><b><font style="font-size:10px;">Ozo(lab)</font></b><br><font style="font-size:8px;">BłMa</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td rowspan="2" colspan="2" height="10" width="15" bgcolor="#6CE6BE"><b><font style="font-size:10px;">Ozo(lab)</font></b><br><font style="font-size:8px;">BłMa</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px;background-color:#6CE6BE" mergewith="&lt;P align=left&gt;Zarządzanie projektami informatycznymi&lt;/P&gt;20">Ozo</td>
+<td width="100"><font style="font-size:10px;"><b><p align="left">Zarządzanie projektami informatycznymi</p></b></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">7</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td colspan="2" height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(wy)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_</font></td>
+<td style="height:10px;width:15px" mergewith="&lt;P align=left&gt;mgr inż. BŁASZCZYK Marek&lt;/P&gt;21">BłMa<br>lab 30</td>
+<td rowspan="2" width="100"><font style="font-size:8px;"><p align="left">mgr inż. BŁASZCZYK Marek</p></font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">8</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" colspan="10" height="10" width="15" bgcolor="#D4D293"><b><font style="font-size:10px;">Ja(ćw)</font></b><br><font style="font-size:8px;">JaSol</font><br><font style="font-size:8px;">202/300</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td rowspan="3" colspan="4" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px" mergewith="&lt;P align=left&gt;mgr inż. BŁASZCZYK Marek&lt;/P&gt;22">BłMa<br>wy 20</td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">9</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="23">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">10</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="24">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">11</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td colspan="4" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_</font></td>
+<td style="height:10px;width:15px" mergewith="25">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">12</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="26">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td rowspan="14" style="height:10px;width:20px;background-color:silver">śr.</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver">30 IX</td>
+<td style="height:10px;width:15px;background-color:silver">07 X</td>
+<td style="height:10px;width:15px;background-color:silver">14 X</td>
+<td style="height:10px;width:15px;background-color:silver">21 X</td>
+<td style="height:10px;width:15px;background-color:silver">28 X</td>
+<td style="height:10px;width:15px;background-color:silver">04 XI</td>
+<td style="height:10px;width:15px;background-color:silver">11 XI</td>
+<td style="height:10px;width:15px;background-color:silver">18 XI</td>
+<td style="height:10px;width:15px;background-color:silver">25 XI</td>
+<td style="height:10px;width:15px;background-color:silver">02 XII</td>
+<td style="height:10px;width:15px;background-color:silver">09 XII</td>
+<td style="height:10px;width:15px;background-color:silver">16 XII</td>
+<td style="height:10px;width:15px;background-color:silver">23 XII</td>
+<td style="height:10px;width:15px;background-color:silver">30 XII</td>
+<td style="height:10px;width:15px;background-color:silver">06 I</td>
+<td style="height:10px;width:15px;background-color:silver">13 I</td>
+<td style="height:10px;width:15px;background-color:silver">20 I</td>
+<td style="height:10px;width:15px;background-color:silver">27 I</td>
+<td style="height:10px;width:15px;background-color:silver">03 II</td>
+<td style="height:10px;width:15px;background-color:silver">10 II</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="27">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">1</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="12" height="10" width="15" bgcolor="" silver""="">.</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" colspan="2" height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td rowspan="12" height="10" width="15" bgcolor="" silver""="">.</td>
+<td rowspan="3" colspan="4" height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="12" colspan="3" height="10" width="15" bgcolor="" silver""="">.</td>
+<td rowspan="3" colspan="4" height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td rowspan="12" height="10" width="15" bgcolor="" silver""="">.</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="28">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">2</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" height="10" width="15" bgcolor="#86BBAF"><b><font style="font-size:10px;">Pao1(wy)</font></b><br><font style="font-size:8px;">ŁuB</font><br><font style="font-size:8px;">18/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="29">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">3</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="30">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">4</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="4" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" height="10" width="15" bgcolor="#86BBAF"><b><font style="font-size:10px;">Pao1(wy)</font></b><br><font style="font-size:8px;">ŁuB</font><br><font style="font-size:8px;">270/5</font><br><font style="font-size:8px;">245IC_</font></td>
+<td rowspan="2" colspan="4" height="10" width="15" bgcolor="#86BBAF"><b><font style="font-size:10px;">Pao1(wy)</font></b><br><font style="font-size:8px;">ŁuB</font><br><font style="font-size:8px;">18/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td rowspan="3" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">3/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td rowspan="2" colspan="2" height="10" width="15" bgcolor="#86BBAF"><b><font style="font-size:10px;">Pao1(wy)</font></b><br><font style="font-size:8px;">ŁuB</font><br><font style="font-size:8px;">18/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td rowspan="2" colspan="2" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="31">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">5</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="32">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">6</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td rowspan="2" height="10" width="15" bgcolor="#86BBAF"><b><font style="font-size:10px;">Pao1(wy)</font></b><br><font style="font-size:8px;">ŁuB</font><br><font style="font-size:8px;">18/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td rowspan="2" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="33">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">7</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="6" height="10" width="15" bgcolor="#F4B496"><b><font style="font-size:10px;">Hsk(lab)</font></b><br><font style="font-size:8px;">BiKr</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="34">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">8</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="4" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">109/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="4" colspan="2" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td rowspan="6" height="10" width="15" bgcolor="#F4B496"><b><font style="font-size:10px;">Hsk(wy)</font></b><br><font style="font-size:8px;">BiKr</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td rowspan="4" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="35">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">9</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="36">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">10</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="37">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">11</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="38">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">12</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="39">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">13</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="40">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td rowspan="13" style="height:10px;width:20px;background-color:silver">czw.</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver">01 X</td>
+<td style="height:10px;width:15px;background-color:silver">08 X</td>
+<td style="height:10px;width:15px;background-color:silver">15 X</td>
+<td style="height:10px;width:15px;background-color:silver">22 X</td>
+<td style="height:10px;width:15px;background-color:silver">29 X</td>
+<td style="height:10px;width:15px;background-color:silver">05 XI</td>
+<td style="height:10px;width:15px;background-color:silver">12 XI</td>
+<td style="height:10px;width:15px;background-color:silver">19 XI</td>
+<td style="height:10px;width:15px;background-color:silver">26 XI</td>
+<td style="height:10px;width:15px;background-color:silver">03 XII</td>
+<td style="height:10px;width:15px;background-color:silver">10 XII</td>
+<td style="height:10px;width:15px;background-color:silver">17 XII</td>
+<td style="height:10px;width:15px;background-color:silver">24 XII</td>
+<td style="height:10px;width:15px;background-color:silver">31 XII</td>
+<td style="height:10px;width:15px;background-color:silver">07 I</td>
+<td style="height:10px;width:15px;background-color:silver">14 I</td>
+<td style="height:10px;width:15px;background-color:silver">21 I</td>
+<td style="height:10px;width:15px;background-color:silver">28 I</td>
+<td style="height:10px;width:15px;background-color:silver">04 II</td>
+<td style="height:10px;width:15px;background-color:silver">11 II</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="41">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">1</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="4" height="10" width="15" bgcolor="#F4B496"><b><font style="font-size:10px;">Hsk(wy)</font></b><br><font style="font-size:8px;">BiKr</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="12" colspan="2" height="10" width="15" bgcolor="" silver""="">.</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="6" height="10" width="15" bgcolor="#F4B496"><b><font style="font-size:10px;">Hsk(lab)</font></b><br><font style="font-size:8px;">BiKr</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="12" height="10" width="15" bgcolor="" silver""="">.</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="42">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">2</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="43">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">3</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="44">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">4</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" height="10" width="15" bgcolor="#86BBAF"><b><font style="font-size:10px;">Pao1(wy)</font></b><br><font style="font-size:8px;">ŁuB</font><br><font style="font-size:8px;">307/353</font><br><font style="font-size:8px;">245IC_</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="45">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">5</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" height="10" width="15" bgcolor="#F4B496"><b><font style="font-size:10px;">Hsk(lab)</font></b><br><font style="font-size:8px;">BiKr</font><br><font style="font-size:8px;">105/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="46">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">6</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="4" height="10" width="15" bgcolor="#F4B496"><b><font style="font-size:10px;">Hsk(pr)</font></b><br><font style="font-size:8px;">BiKr</font><br><font style="font-size:8px;">117/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="47">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">7</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" colspan="2" height="10" width="15" bgcolor="#F4B496"><b><font style="font-size:10px;">Hsk(lab)</font></b><br><font style="font-size:8px;">BiKr</font><br><font style="font-size:8px;">109/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="48">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">8</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" height="10" width="15" bgcolor="#F4B496"><b><font style="font-size:10px;">Hsk(lab)</font></b><br><font style="font-size:8px;">BiKr</font><br><font style="font-size:8px;">117/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="49">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">9</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="4" height="10" width="15" bgcolor="#F4B496"><b><font style="font-size:10px;">Hsk(lab)</font></b><br><font style="font-size:8px;">BiKr</font><br><font style="font-size:8px;">109/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="50">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">10</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" colspan="2" height="10" width="15" bgcolor="#F4B496"><b><font style="font-size:10px;">Hsk(pr)</font></b><br><font style="font-size:8px;">BiKr</font><br><font style="font-size:8px;">117/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="51">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">11</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="52">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">12</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="53">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td rowspan="13" style="height:10px;width:20px;background-color:silver">pt.</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver">02 X</td>
+<td style="height:10px;width:15px;background-color:silver">09 X</td>
+<td style="height:10px;width:15px;background-color:silver">16 X</td>
+<td style="height:10px;width:15px;background-color:silver">23 X</td>
+<td style="height:10px;width:15px;background-color:silver">30 X</td>
+<td style="height:10px;width:15px;background-color:silver">06 XI</td>
+<td style="height:10px;width:15px;background-color:silver">13 XI</td>
+<td style="height:10px;width:15px;background-color:silver">20 XI</td>
+<td style="height:10px;width:15px;background-color:silver">27 XI</td>
+<td style="height:10px;width:15px;background-color:silver">04 XII</td>
+<td style="height:10px;width:15px;background-color:silver">11 XII</td>
+<td style="height:10px;width:15px;background-color:silver">18 XII</td>
+<td style="height:10px;width:15px;background-color:silver">25 XII</td>
+<td style="height:10px;width:15px;background-color:silver">01 I</td>
+<td style="height:10px;width:15px;background-color:silver">08 I</td>
+<td style="height:10px;width:15px;background-color:silver">15 I</td>
+<td style="height:10px;width:15px;background-color:silver">22 I</td>
+<td style="height:10px;width:15px;background-color:silver">29 I</td>
+<td style="height:10px;width:15px;background-color:silver">05 II</td>
+<td style="height:10px;width:15px;background-color:silver">12 II</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="54">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">1</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="12" height="10" width="15" bgcolor="" silver""="">.</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="12" colspan="2" height="10" width="15" bgcolor="" silver""="">.</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="12" height="10" width="15" bgcolor="" silver""="">.</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="55">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">2</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" height="10" width="15" bgcolor="#A0D6E2"><b><font style="font-size:10px;">Os(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="56">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">3</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" height="10" width="15" bgcolor="#6CE6BE"><b><font style="font-size:10px;">Ozo(wy)</font></b><br><font style="font-size:8px;">BłMa</font><br><font style="font-size:8px;">270/5</font><br><font style="font-size:8px;">242I; 245IC_A</font></td>
+<td rowspan="2" colspan="3" height="10" width="15" bgcolor="#6CE6BE"><b><font style="font-size:10px;">Ozo(wy)</font></b><br><font style="font-size:8px;">BłMa</font><br><font style="font-size:8px;">208/353</font><br><font style="font-size:8px;">242I; 245IC_A</font></td>
+<td height="10" width="15" bgcolor="#F6DCDE"><b><font style="font-size:10px;">SPOTKANIE(</font></b><br><font style="font-size:8px;">220/ 7</font><br><font style="font-size:8px;">222ICI_A_B; 222MC; 232MCA; 232MC_ESO; 23</font></td>
+<td rowspan="2" height="10" width="15" bgcolor="#6CE6BE"><b><font style="font-size:10px;">Ozo(wy)</font></b><br><font style="font-size:8px;">BłMa</font><br><font style="font-size:8px;">121/bibl.</font><br><font style="font-size:8px;">242I; 245IC_A1</font></td>
+<td rowspan="2" height="10" width="15" bgcolor="#6CE6BE"><b><font style="font-size:10px;">Ozo(lab)</font></b><br><font style="font-size:8px;">BłMa</font><br><font style="font-size:8px;">4/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="2" colspan="4" height="10" width="15" bgcolor="#6CE6BE"><b><font style="font-size:10px;">Ozo(wy)</font></b><br><font style="font-size:8px;">BłMa</font><br><font style="font-size:8px;">121/bibl.</font><br><font style="font-size:8px;">242I; 245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="57">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">4</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="58">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">5</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" colspan="2" height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td rowspan="3" colspan="2" height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td rowspan="3" height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="59">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">6</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="4" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">3/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td rowspan="2" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">3/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td rowspan="4" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">3/353</font><br><font style="font-size:8px;">245IC_A1</font></td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="60">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">7</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td rowspan="3" height="10" width="15" bgcolor="#ECCCD8"><b><font style="font-size:10px;">Oz(lab)</font></b><br><font style="font-size:8px;">KaBa</font><br><font style="font-size:8px;">109/353</font><br><font style="font-size:8px;">245IC_A</font></td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="61">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">8</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td colspan="2" height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_</font></td>
+<td colspan="2" height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_</font></td>
+<td height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_</font></td>
+<td height="10" width="15" bgcolor="#F08E9A"><b><font style="font-size:10px;">Bsp1(lab)</font></b><br><font style="font-size:8px;">TrPa</font><br><font style="font-size:8px;">2/353</font><br><font style="font-size:8px;">245IC_</font></td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="62">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">9</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="63">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">10</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="64">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">11</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="65">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">12</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="66">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">sob.</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver">26 IX</td>
+<td style="height:10px;width:15px;background-color:silver">03 X</td>
+<td style="height:10px;width:15px;background-color:silver">10 X</td>
+<td style="height:10px;width:15px;background-color:silver">17 X</td>
+<td style="height:10px;width:15px;background-color:silver">24 X</td>
+<td style="height:10px;width:15px;background-color:silver">31 X</td>
+<td style="height:10px;width:15px;background-color:silver">07 XI</td>
+<td style="height:10px;width:15px;background-color:silver">14 XI</td>
+<td style="height:10px;width:15px;background-color:silver">21 XI</td>
+<td style="height:10px;width:15px;background-color:silver">28 XI</td>
+<td style="height:10px;width:15px;background-color:silver">05 XII</td>
+<td style="height:10px;width:15px;background-color:silver">12 XII</td>
+<td style="height:10px;width:15px;background-color:silver">19 XII</td>
+<td style="height:10px;width:15px;background-color:silver">26 XII</td>
+<td style="height:10px;width:15px;background-color:silver">02 I</td>
+<td style="height:10px;width:15px;background-color:silver">09 I</td>
+<td style="height:10px;width:15px;background-color:silver">16 I</td>
+<td style="height:10px;width:15px;background-color:silver">23 I</td>
+<td style="height:10px;width:15px;background-color:silver">30 I</td>
+<td style="height:10px;width:15px;background-color:silver">06 II</td>
+<td style="height:10px;width:15px;background-color:silver">13 II</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="67">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+<tr align="center" valign="middle"><td style="height:10px;width:20px;background-color:silver">niedz.</td>
+<td style="height:10px;width:15px">&nbsp;</td>
+<td style="height:10px;width:15px;background-color:silver">27 IX</td>
+<td style="height:10px;width:15px;background-color:silver">04 X</td>
+<td style="height:10px;width:15px;background-color:silver">11 X</td>
+<td style="height:10px;width:15px;background-color:silver">18 X</td>
+<td style="height:10px;width:15px;background-color:silver">25 X</td>
+<td style="height:10px;width:15px;background-color:silver">01 XI</td>
+<td style="height:10px;width:15px;background-color:silver">08 XI</td>
+<td style="height:10px;width:15px;background-color:silver">15 XI</td>
+<td style="height:10px;width:15px;background-color:silver">22 XI</td>
+<td style="height:10px;width:15px;background-color:silver">29 XI</td>
+<td style="height:10px;width:15px;background-color:silver">06 XII</td>
+<td style="height:10px;width:15px;background-color:silver">13 XII</td>
+<td style="height:10px;width:15px;background-color:silver">20 XII</td>
+<td style="height:10px;width:15px;background-color:silver">27 XII</td>
+<td style="height:10px;width:15px;background-color:silver">03 I</td>
+<td style="height:10px;width:15px;background-color:silver">10 I</td>
+<td style="height:10px;width:15px;background-color:silver">17 I</td>
+<td style="height:10px;width:15px;background-color:silver">24 I</td>
+<td style="height:10px;width:15px;background-color:silver">31 I</td>
+<td style="height:10px;width:15px;background-color:silver">07 II</td>
+<td style="height:10px;width:15px;background-color:silver">14 II</td>
+<td style="height:10px;width:15px;background-color:silver" background="245IC__files/outofrange_-CkT.gif">&nbsp;</td>
+<td style="height:10px;width:15px" mergewith="68">&nbsp;</td>
+<td width="100"><font style="font-size:8px;">&nbsp;</font></td>
+</tr>
+
+</tbody></table>
+
+
+<font style="font-size:10px;">Data aktualizacji: 09.11.2026 14:20:24</font>
+<hr><font style="font-size:10px;">Dokument został utworzony za pomocą programu <a href="http://www.plansoft.org/">Plansoft.org</a></font>
+
+</body><div style="all: initial;"></div></html>
